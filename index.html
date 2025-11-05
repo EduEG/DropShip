@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>DropShip Academy — Videos</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+    :root{
+      --bg:#f5f7fa;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --primary:#2563EB;
+      --radius:12px;
+      --shadow: 0 8px 30px rgba(15,23,42,0.06);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+      background:var(--bg);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .app {
+      width:100%;
+      max-width:980px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:20px;
+      margin-bottom:18px;
+    }
+    header.appbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .brand { color:var(--primary); font-weight:700; font-size:18px; }
+    .muted{ color:var(--muted); }
+    .center{ text-align:center; }
+    input, button, select {
+      font-family: inherit;
+      font-size:15px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid #e6e9f2;
+    }
+    .primary{
+      background:linear-gradient(90deg,var(--primary),#1D4ED8);
+      color:#fff; border:none; cursor:pointer; font-weight:700;
+      padding:10px 14px; border-radius:10px;
+    }
+    .primary:disabled{ opacity:0.6; cursor:not-allowed; }
+    .lessons-list{ display:flex; flex-direction:column; gap:10px; }
+    .lesson-row{
+      display:flex; align-items:center; gap:12px; justify-content:space-between;
+      padding:12px; border-radius:10px; border:1px solid #eef2ff;
+    }
+    .locked{ opacity:0.6; }
+    iframe { width:100%; height:480px; border-radius:10px; border:0; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .small{ font-size:13px; color:var(--muted); }
+    @media (max-width:800px){
+      iframe{ height:260px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <div class="appbar">
+        <div>
+          <div class="brand">DropShip Academy 💸</div>
+          <div class="small">Video-only course — login with an access code</div>
+        </div>
+        <div id="top-actions"></div>
+      </div>
+
+      <!-- Login -->
+      <div id="login-section">
+        <div class="center">
+          <h2>Enter access code</h2>
+          <p class="muted">Use the code provided to you by admin</p>
+          <input id="accessCode" placeholder="مثال: DSA-1256" />
+          <div style="height:12px"></div>
+          <button id="btnLogin" class="primary">Enter</button>
+        </div>
+      </div>
+
+      <!-- Lessons list -->
+      <div id="lessons-section" class="hidden">
+        <h3>الدروس</h3>
+        <p class="small">اضغط على الدرس لفتحه. بعد مشاهدة الفيديو اضغط "علامة شاهدت" لفتح الدرس التالي.</p>
+        <div id="lessons-list" class="lessons-list"></div>
+      </div>
+
+      <!-- Lesson view -->
+      <div id="lesson-view" class="hidden">
+        <div id="lesson-card" class="card"></div>
+      </div>
+    </div>
+
+    <div id="footer" class="small center muted">Saved locally on this browser — progress persists here only.</div>
+  </div>
+
+  <script>
+  // ====== CONFIG ======
+  const validCodes = ["DSA123","VIP2025","BETA2025","STUDENT01"]; // change these codes as needed
+
+  // Lessons populated from your Excel (title + embed URL)
+  const lessons = [
+    {"title":"(2) يعني ايه e-commerce","video":"https://www.youtube.com/embed/sbJaUndgqCo?si=wmNK8pyRPbREYsol"},
+    {"title":"(3) يعني إيه drop-shipping","video":"https://www.youtube.com/embed/I25rdouAPdY?si=UMlSIH5lr-V6MEQx"},
+    {"title":"(4) هستفيد ايه من تاجر؟","video":"https://www.youtube.com/embed/VPJ2JnXWA88?si=lYH9sEb6MawN4iO2"},
+    {"title":"(5) ازاي اسجل مع تاجر؟","video":"https://www.youtube.com/embed/uFvbqknQQ38?si=xIiYJPzgdvqZqd-T"},
+    {"title":"(6) الإشعارات والمنتجات في موقع تاجر","video":"https://www.youtube.com/embed/Ao1YMrJbeBw?si=XGEDxKigkxnygNJT"},
+    {"title":"(7) ملاحظات الشحن في موقع تاجر","video":"https://www.youtube.com/embed/z98W3etHyVU?si=MSLD7vxKtg4wyxyS"},
+    {"title":"(8) سياسة الاستبدال والاسترجاع","video":"https://www.youtube.com/embed/cDtf1dg02SA?si=wcFPBVqalXchsoms"},
+    {"title":"(9) نصائح لزيادة نسب التسليم وسرعة التوصيل","video":"https://www.youtube.com/embed/4rVLpUn9Z-k?si=6ZsP8hn0tHeJZUFV"},
+    {"title":"(10) نبذة عن المنتجات وعروض تاجر الحصرية","video":"https://www.youtube.com/embed/CdMZO5VdPSs?si=JOoE0pVhj-RfQngk"},
+    {"title":"(11) إزاى تختار منتجك؟","video":"https://www.youtube.com/embed/ty2rR3-kEdo?si=TllqdhHKTHuTRXg0"},
+    {"title":"(12) إزاى تبتدي تسويق إنشاء صفحة على الفيسبوك","video":"https://www.youtube.com/embed/dyyD8CjBjxo?si=q4dDO9BBiZmwnSSi"},
+    {"title":"(13) استكشاف المنتج","video":"https://www.youtube.com/embed/f6uJTPQeBDY?si=QWqxXie1jCpBEi07"},
+    {"title":"(14) إزاى تعمل تصميم على canva","video":"https://www.youtube.com/embed/hVeJGi8bLH8?si=qptl8ienh6zhpxrs"},
+    {"title":"(15) التعرف اكتر على المنتج","video":"https://www.youtube.com/embed/yGeaSjjVwCM?si=Jje3r-XWpeT2usG4"},
+    {"title":"(16) كيفية كتابة محتوى عن المنتج","video":"https://www.youtube.com/embed/vjV9GYvVkxQ?si=xNwDnHyOCL0y32Zw"},
+    {"title":"(17) ابسط طريقة لعمل إعلان على فيسبوك","video":"https://www.youtube.com/embed/c4Q1itEUnRw?si=tOeEO5rJDqPMgudU"},
+    {"title":"(18) الاستهداف","video":"https://www.youtube.com/embed/sBQR_imqdaE?si=rpHouMMONO8ek8vB"},
+    {"title":"(19) تكلفة الإعلان","video":"https://www.youtube.com/embed/zLQVIJjEZjU?si=X2bGSZBoCwDi5xz7"},
+    {"title":"(20) إزاى تسجل طلبك على موقع تاجر","video":"https://www.youtube.com/embed/iJI70IhcETY?si=1IyLr7fPr9glR_Fs"},
+    {"title":"(21) متابعة تفاصيل الطلب","video":"https://www.youtube.com/embed/jwDvZ141Rdw?si=g0rYl14PFccbpD1N"},
+    {"title":"(22) إزاى تعمل استبدال أو استرجاع","video":"https://www.youtube.com/embed/1q_6rfki_Lk?si=E9A-OHYYu95Tavr2"},
+    {"title":"(23) حالة الطلب","video":"https://www.youtube.com/embed/y4JEXH4h3dc?si=FfMkc7YZJRhJV41y"},
+    {"title":"(24) المحفظة","video":"https://www.youtube.com/embed/c26CfZgFI1Y?si=ZrZJRkJFCPFVw1go"},
+    {"title":"(25) إزاى تفكر عشان تكبر البيزنس بتاعك؟","video":"https://www.youtube.com/embed/I7RkRxbSHFo?si=yM6DUo1dwVrsMfgw"},
+    {"title":"(27) تجربتي مع تاجر","video":"https://www.youtube.com/embed/SR3xINbPUBs?si=5NjcEyrgXa-wPBIm"},
+    {"title":"(26) شكاوى ومقترحات موقع تاجر","video":"https://www.youtube.com/embed/6zgiAhnqz98?si=K9T8EnjqozKQn3vz"},
+    {"title":"(28) ليه اشتغل مع تاجر؟","video":"https://www.youtube.com/embed/9PtaFJNJcx8?si=D5WLr_qIpAR9c1uH"}
+  ];
+
+  // ====== UI elements ======
+  const loginSection = document.getElementById('login-section');
+  const lessonsSection = document.getElementById('lessons-section');
+  const lessonsList = document.getElementById('lessons-list');
+  const lessonView = document.getElementById('lesson-view');
+  const lessonCard = document.getElementById('lesson-card');
+  const topActions = document.getElementById('top-actions');
+
+  // ====== Helpers ======
+  function isAuthorized() {
+    return localStorage.getItem('dsa_authorized') === 'true';
+  }
+  function setAuthorized(code) {
+    localStorage.setItem('dsa_authorized','true');
+    localStorage.setItem('dsa_code', code);
+  }
+  function logout() {
+    // keep progress, only remove auth
+    localStorage.removeItem('dsa_authorized');
+    localStorage.removeItem('dsa_code');
+    location.reload();
+  }
+
+  // render top actions (logout & progress)
+  function renderTopActions(){
+    topActions.innerHTML = '';
+    if (isAuthorized()){
+      const btnProgress = document.createElement('button');
+      btnProgress.textContent = 'Progress';
+      btnProgress.className = 'primary';
+      btnProgress.style.background = '#fff';
+      btnProgress.style.color = '#2563EB';
+      btnProgress.onclick = () => showProgress();
+      const btnLogout = document.createElement('button');
+      btnLogout.textContent = 'Logout';
+      btnLogout.className = 'primary';
+      btnLogout.onclick = logout;
+      topActions.appendChild(btnProgress);
+      topActions.appendChild(btnLogout);
+    }
+  }
+
+  // ====== Login flow ======
+  document.getElementById('btnLogin').addEventListener('click', () => {
+    const code = document.getElementById('accessCode').value.trim();
+    if (!code) return alert('Please enter access code');
+    if (validCodes.includes(code)){
+      setAuthorized(code);
+      // unlock first lesson
+      localStorage.setItem('lesson0_unlocked','true');
+      showLessons();
+    } else {
+      alert('Invalid access code — contact admin');
+    }
+  });
+
+  // show lessons list
+  function showLessons(){
+    loginSection.classList.add('hidden');
+    lessonView.classList.add('hidden');
+    lessonsSection.classList.remove('hidden');
+    lessonsList.innerHTML = '';
+    renderTopActions();
+
+    lessons.forEach((ls, idx) => {
+      const unlocked = localStorage.getItem(`lesson${idx}_unlocked`) === 'true';
+      const watched = localStorage.getItem(`lesson${idx}_watched`) === 'true';
+      const row = document.createElement('div');
+      row.className = 'lesson-row card';
+      if (!unlocked) row.classList.add('locked');
+
+      const left = document.createElement('div');
+      left.innerHTML = `<div style="font-weight:700">${idx+1}. ${ls.title}</div><div class="small">${unlocked? (watched? 'مشاهدة ✅':'تم فتح الدرس') : 'مقفل 🔒'}</div>`;
+      const right = document.createElement('div');
+      right.style.display = 'flex';
+      right.style.gap = '8px';
+      const openBtn = document.createElement('button');
+      openBtn.className = 'primary';
+      openBtn.textContent = 'فتح الدرس';
+      openBtn.disabled = !unlocked;
+      openBtn.onclick = () => openLesson(idx);
+      right.appendChild(openBtn);
+
+      row.appendChild(left);
+      row.appendChild(right);
+      lessonsList.appendChild(row);
+    });
+  }
+
+  // open lesson view
+  function openLesson(index){
+    if (!isAuthorized()){ alert('Please login'); return; }
+    lessonsSection.classList.add('hidden');
+    lessonView.classList.remove('hidden');
+
+    const ls = lessons[index];
+    const watched = localStorage.getItem(`lesson${index}_watched`) === 'true';
+
+    lessonCard.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div style="font-weight:800;font-size:18px">${index+1}. ${ls.title}</div>
+          <div class="small muted">درس ${index+1} من ${lessons.length}</div>
+        </div>
+        <div>
+          <button id="backBtn" class="primary" style="background:#fff;color:#2563EB;border:1px solid #e6e9f2">العودة</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <iframe id="videoFrame" src="${ls.video}" allowfullscreen></iframe>
+      </div>
+
+      <div class="actions">
+        <button id="markWatched" class="primary" ${watched? 'disabled':''}>${watched? 'شاهدت بالفعل ✅' : 'علمت أنى شاهدت — افتح التالي'}</button>
+        <button id="unlockNext" class="primary" style="background:#fff;color:#2563EB;border:1px solid #e6e9f2">فتح الدرس التالي (لو متاح)</button>
+      </div>
+
+      <div style="margin-top:10px" class="small muted">ملاحظة: اضغط "علمت أنى شاهدت" بعد انتهائك من مشاهدة الفيديو لفتح الدرس التالي.</div>
+    `;
+
+    document.getElementById('backBtn').onclick = ()=> {
+      lessonView.classList.add('hidden');
+      showLessons();
+    };
+
+    document.getElementById('markWatched').onclick = () => {
+      localStorage.setItem(`lesson${index}_watched`, 'true');
+      // mark current as unlocked (already), and unlock next
+      if (index + 1 < lessons.length){
+        localStorage.setItem(`lesson${index+1}_unlocked`, 'true');
+      }
+      // disable the button and update label
+      const btn = document.getElementById('markWatched');
+      btn.textContent = 'شاهدت بالفعل ✅';
+      btn.disabled = true;
+      alert('تم تسجيل المشاهدة — الدرس التالي مفتوح الآن (إذا كان موجود)');
+    };
+
+    document.getElementById('unlockNext').onclick = () => {
+      if (index + 1 < lessons.length){
+        localStorage.setItem(`lesson${index+1}_unlocked`, 'true');
+        alert('الدرس التالي مفتوح الآن.');
+      } else {
+        alert('هذا آخر درس.');
+      }
+      showLessons();
+    };
+  }
+
+  // show progress modal-like (simple view)
+  function showProgress(){
+    let done = 0;
+    lessons.forEach((_,i) => {
+      if (localStorage.getItem(`lesson${i}_watched`) === 'true') done++;
+    });
+    alert(`التقدّم: ${done} / ${lessons.length} درس (مسجّل كمشاهدة)`);
+  }
+
+  // on load: if authorized show lessons else show login
+  window.onload = () => {
+    if (isAuthorized()){
+      showLessons();
+    } else {
+      loginSection.classList.remove('hidden');
+      lessonsSection.classList.add('hidden');
+      lessonView.classList.add('hidden');
+    }
+    renderTopActions();
+  };
+  </script>
+</body>
+</html>
